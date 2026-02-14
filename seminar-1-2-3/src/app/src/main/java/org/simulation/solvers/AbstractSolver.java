@@ -13,10 +13,10 @@ public abstract class AbstractSolver implements NumericalSolver {
     @Override
     public double[] step(PhysicalModel model, SimulationDomain domain, double dt) {
         validateInputs(model, domain, dt);
-
+        
         double[] currentValues = model.getFieldValues();
         double[] rhs = model.computeRHS(domain, getCurrentTime());
-
+        
         double[] newValues = applyScheme(currentValues, rhs, dt);
 
         domain.applyBoundaryConditions(newValues);

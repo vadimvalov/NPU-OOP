@@ -5,7 +5,9 @@ import org.simulation.core.SimulationDomain;
 import org.simulation.data.TemperatureField;
 import org.simulation.domain.Grid2D;
 
+// implements - O principle, open for extension, closed for modification
 public class HeatTransferModel implements PhysicalModel {
+    // Composition: Each model contains custom fields 
     private final double thermalDiffusivity;
     private TemperatureField temperature;
     

@@ -1,5 +1,6 @@
 package org.simulation.data;
 
+// extends - inheritance
 public class ConcentrationField extends Field {
     
     private static final String FIELD_NAME = "Concentration";

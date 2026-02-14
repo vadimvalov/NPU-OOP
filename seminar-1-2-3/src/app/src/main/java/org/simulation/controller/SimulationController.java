@@ -10,7 +10,7 @@ import java.util.List;
 
 public class SimulationController {
 
-    private PhysicalModel model;
+    private PhysicalModel model; // D principle, we inject the whole model, not classes
     private NumericalSolver solver;
     private SimulationDomain domain;
     private final List<OutputHandler> outputHandlers = new ArrayList<>();
