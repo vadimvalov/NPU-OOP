@@ -1,4 +1,4 @@
-package main.java.org.serialization.security;
+package org.serialization.security;
 
 public class CryptoException extends RuntimeException {
 

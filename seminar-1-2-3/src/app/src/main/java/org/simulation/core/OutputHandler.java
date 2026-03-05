@@ -7,7 +7,7 @@ public interface OutputHandler {
     
     void write(SimulationDomain domain, double time, int step);
     
-    void finalize();
+   void close();
     
     String getName();
     

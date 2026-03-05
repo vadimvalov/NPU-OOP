@@ -1,6 +1,6 @@
-package main.java.org.serialization.serializers;
+package org.serialization.serializers;
 
-import main.java.org.serialization.security.CryptoUtil;
+import org.serialization.security.CryptoUtil;
 
 import javax.crypto.SecretKey;
 import java.io.*;

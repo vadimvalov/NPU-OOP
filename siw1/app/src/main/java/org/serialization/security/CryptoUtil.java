@@ -1,4 +1,4 @@
-package main.java.org.serialization.security;
+package org.serialization.security;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;

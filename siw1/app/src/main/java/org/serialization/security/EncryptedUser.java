@@ -1,7 +1,7 @@
-package main.java.org.serialization.security;
+package org.serialization.security;
 
-import main.java.org.serialization.entities.User;
-import main.java.org.serialization.entities.Department;
+import org.serialization.entities.User;
+import org.serialization.entities.Department;
 
 import javax.crypto.SecretKey;
 import java.io.*;

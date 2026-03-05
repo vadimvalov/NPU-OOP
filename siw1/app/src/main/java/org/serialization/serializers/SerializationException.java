@@ -1,4 +1,4 @@
-package main.java.org.serialization.serializers;
+package org.serialization.serializers;
 
 public class SerializationException extends RuntimeException {
 

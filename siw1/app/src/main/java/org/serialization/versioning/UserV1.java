@@ -1,4 +1,4 @@
-package main.java.org.serialization.versioning;
+package org.serialization.versioning;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;

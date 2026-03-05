@@ -1,13 +1,15 @@
 package org.simulation;
 
+import org.simulation.adapter.LegacyHeatModelAdapter;
 import org.simulation.controller.SimulationController;
 import org.simulation.domain.Grid2D;
-import org.simulation.models.FluidFlowModel;
+// import org.simulation.models.FluidFlowModel;
 import org.simulation.models.HeatTransferModel;
-import org.simulation.models.ReactiveTransportModel;
-import org.simulation.output.CSVOutputHandler;
+// import org.simulation.models.ReactiveTransportModel;
+// import org.simulation.output.CSVOutputHandler;
 import org.simulation.output.ConsoleOutputHandler;
 import org.simulation.solvers.FiniteDifferenceSolver;
+import org.simulation.output.JSONOutputHandler;
 
 public class Main {
 
@@ -27,22 +29,35 @@ public class Main {
         System.out.println("╚══════════════════════════════════════════════════╝");
         System.out.println();
 
+        // runScenario(
+        //     "Heat Transfer",
+        //     new HeatTransferModel(1e-4),
+        //     "heat_transfer.csv"
+        // );
+
+        // runScenario(
+        //     "Fluid Flow",
+        //     new FluidFlowModel(1e-4, 1000.0),
+        //     "fluid_flow.csv"
+        // );
+
+        // runScenario(
+        //     "Reactive Transport",
+        //     new ReactiveTransportModel(1e-4, 0.1),
+        //     "reactive_transport.csv"
+        // );
+
         runScenario(
-            "Heat Transfer",
+            "Heat Transfer (Native)",
             new HeatTransferModel(1e-4),
-            "heat_transfer.csv"
+            "heat_native.json"
         );
 
+        // (2) Same physics — through adapter over legacy code
         runScenario(
-            "Fluid Flow",
-            new FluidFlowModel(1e-4, 1000.0),
-            "fluid_flow.csv"
-        );
-
-        runScenario(
-            "Reactive Transport",
-            new ReactiveTransportModel(1e-4, 0.1),
-            "reactive_transport.csv"
+            "Heat Transfer (Legacy Adapter)",
+            new LegacyHeatModelAdapter(1e-4, DT),
+            "heat_legacy.json"
         );
 
         System.out.println();
@@ -67,14 +82,16 @@ public class Main {
         ConsoleOutputHandler console = new ConsoleOutputHandler();
         console.setParameter("verbose", "true");
 
-        CSVOutputHandler csv = new CSVOutputHandler(csvFile);
+        // CSVOutputHandler csv = new CSVOutputHandler(csvFile);
+        JSONOutputHandler json = new JSONOutputHandler(csvFile.replace(".csv", ".json"));
 
         SimulationController controller = new SimulationController()
                 .setDomain(domain)
                 .setSolver(solver)
                 .setModel(model)
                 .addOutputHandler(console)
-                .addOutputHandler(csv)
+                // .addOutputHandler(csv)
+                .addOutputHandler(json)
                 .setTotalTime(TOTAL_TIME)
                 .setDt(DT)
                 .setOutputEvery(OUTPUT_EVERY);

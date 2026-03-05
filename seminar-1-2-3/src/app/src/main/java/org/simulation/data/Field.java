@@ -1,6 +1,7 @@
 package org.simulation.data;
 
 public abstract class Field {
+    // private- encapsulation, getters and setters
     private double[][] data;
     private int nx;
     private int ny;

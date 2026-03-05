@@ -128,7 +128,7 @@ public class SimulationController {
 
     private void finalizeOutputs() {
         for (OutputHandler handler : outputHandlers) {
-            handler.finalize();
+            handler.close();
         }
     }
 

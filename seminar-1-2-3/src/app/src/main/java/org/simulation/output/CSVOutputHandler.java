@@ -94,7 +94,7 @@ public class CSVOutputHandler implements OutputHandler {
     }
 
     @Override
-    public void finalize() {
+    public void close() {
         if (writer != null) {
             writer.close();
             writer = null;

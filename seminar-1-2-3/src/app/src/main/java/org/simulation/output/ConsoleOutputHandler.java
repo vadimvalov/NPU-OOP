@@ -50,7 +50,7 @@ public class ConsoleOutputHandler implements OutputHandler {
     }
 
     @Override
-    public void finalize() {
+    public void close() {
         System.out.println("[Console] Output complete for: " + fieldName);
     }
 

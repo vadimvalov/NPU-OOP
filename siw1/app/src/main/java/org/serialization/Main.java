@@ -1,12 +1,12 @@
-package main.java.org.serialization;
+package org.serialization;
 
-import main.java.org.serialization.entities.Company;
-import main.java.org.serialization.entities.Department;
-import main.java.org.serialization.entities.User;
-import main.java.org.serialization.security.CryptoUtil;
-import main.java.org.serialization.security.EncryptedUser;
-import main.java.org.serialization.serializers.*;
-import main.java.org.serialization.versioning.*;
+import org.serialization.entities.Company;
+import org.serialization.entities.Department;
+import org.serialization.entities.User;
+import org.serialization.security.CryptoUtil;
+import org.serialization.security.EncryptedUser;
+import org.serialization.serializers.*;
+import org.serialization.versioning.*;
 
 import javax.crypto.SecretKey;
 import java.io.*;
