@@ -1,30 +1,25 @@
 package org.simulation.controller.state;
 
 import org.simulation.controller.SimulationController;
+import org.simulation.core.OutputHandler;
 
 /**
- * IDLE — initial state of every SimulationController.
- *
- * The only valid transition is: IDLE → INITIALIZED via initialize().
- * Calling run(), pause(), or resume() here throws IllegalStateException.
+ * IDLE — initial state. handle() validates config, inits model + output handlers,
+ * resets time, then moves to INITIALIZED.
  */
 public class IdleState extends AbstractSimulationState {
 
     @Override
-    public void initialize(SimulationController ctx) {
-        System.out.println("[State] IDLE → initializing...");
-
+    public void handle(SimulationController ctx) {
         ctx.validateConfiguration();
         ctx.getModel().initialize(ctx.getDomain());
 
-        ctx.getOutputHandlers().forEach(h ->
-            h.initialize(ctx.getDomain(), ctx.getModel())
-        );
+        for (OutputHandler handler : ctx.getOutputHandlers()) {
+            handler.initialize(ctx.getDomain(), ctx.getModel());
+        }
 
         ctx.resetTime();
-
-        System.out.println("[State] Transition: IDLE → INITIALIZED");
-        ctx.setState(new InitializedState());
+        transitionTo(ctx, new InitializedState());
     }
 
     @Override

@@ -3,43 +3,35 @@ package org.simulation.controller.state;
 import org.simulation.controller.SimulationController;
 
 /**
- * State pattern — interface for all simulation lifecycle states.
+ * State Pattern — interface for all simulation lifecycle states.
  *
- * Each concrete state decides which operations are allowed
- * and how to transition to the next state.
+ * Each state implements enter/handle/exit:
+ *   enter()  — called once on transition INTO this state (setup, logging)
+ *   handle() — main action while IN this state (run loop, validation)
+ *   exit()   — called once on transition OUT of this state (cleanup)
  *
  * Lifecycle:
- *   IDLE → INITIALIZED → RUNNING → PAUSED → RUNNING → FINISHED
- *                                         ↑__________↓
+ *   IDLE → CONFIGURED → INITIALIZED → RUNNING ⇄ PAUSED
+ *                                         ↓
+ *                                     COMPLETED / FAILED
+ *
+ * Allowed transitions are enforced per concrete state.
  */
 public interface SimulationState {
 
-    /**
-     * Configure domain, model, solver and output handlers.
-     * Valid only from IDLE.
-     */
-    void initialize(SimulationController ctx);
+    /** Called once when transitioning INTO this state. */
+    void enter(SimulationController ctx);
 
     /**
-     * Start or resume time-stepping loop.
-     * Valid from INITIALIZED or PAUSED.
+     * Main action for this state.
+     * RUNNING: drives the time-step loop.
+     * Others:  validates config, triggers next transition.
      */
-    void run(SimulationController ctx);
+    void handle(SimulationController ctx);
 
-    /**
-     * Suspend the simulation mid-run.
-     * Valid only from RUNNING.
-     */
-    void pause(SimulationController ctx);
+    /** Called once when transitioning OUT of this state. */
+    void exit(SimulationController ctx);
 
-    /**
-     * Resume after pause — delegates to run().
-     * Valid only from PAUSED.
-     */
-    void resume(SimulationController ctx);
-
-    /**
-     * Human-readable name of this state (for logging).
-     */
+    /** Human-readable name of this state (for logging). */
     String getName();
 }

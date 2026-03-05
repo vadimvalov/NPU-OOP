@@ -3,43 +3,34 @@ package org.simulation.controller.state;
 import org.simulation.controller.SimulationController;
 
 /**
- * Base state: every operation throws IllegalStateException by default.
- * Concrete states override only the transitions that are valid for them.
- *
- * This follows the "don't repeat yourself" approach — instead of copying
- * the same exception boilerplate into every concrete state, we inherit it.
+ * Base state: enter/exit log by default, handle() throws.
+ * Concrete states override only what's valid for them.
  */
 public abstract class AbstractSimulationState implements SimulationState {
 
     @Override
-    public void initialize(SimulationController ctx) {
-        throw new IllegalStateException(
-            "Cannot initialize from state [" + getName() + "]. " +
-            "initialize() is only valid from IDLE."
-        );
+    public void enter(SimulationController ctx) {
+        System.out.println("[State] → " + getName());
     }
 
     @Override
-    public void run(SimulationController ctx) {
-        throw new IllegalStateException(
-            "Cannot run from state [" + getName() + "]. " +
-            "run() is only valid from INITIALIZED or PAUSED."
-        );
+    public void exit(SimulationController ctx) {
+        // no-op by default
     }
 
     @Override
-    public void pause(SimulationController ctx) {
+    public void handle(SimulationController ctx) {
         throw new IllegalStateException(
-            "Cannot pause from state [" + getName() + "]. " +
-            "pause() is only valid from RUNNING."
+            "handle() not valid in state [" + getName() + "]"
         );
     }
 
-    @Override
-    public void resume(SimulationController ctx) {
-        throw new IllegalStateException(
-            "Cannot resume from state [" + getName() + "]. " +
-            "resume() is only valid from PAUSED."
-        );
+    /**
+     * Transition helper — always go through exit/enter so logging is consistent.
+     */
+    protected void transitionTo(SimulationController ctx, SimulationState next) {
+        this.exit(ctx);
+        ctx.setState(next);
+        next.enter(ctx);
     }
 }
