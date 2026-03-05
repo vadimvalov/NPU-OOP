@@ -1,31 +1,78 @@
 package org.simulation.controller;
 
+import org.simulation.controller.state.IdleState;
+import org.simulation.controller.state.SimulationState;
 import org.simulation.core.NumericalSolver;
 import org.simulation.core.OutputHandler;
 import org.simulation.core.PhysicalModel;
 import org.simulation.core.SimulationDomain;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+/**
+ * SimulationController — refactored with the State pattern.
+ *
+ * Public API (initialize / run / pause / resume) is now just:
+ *     state.operation(this)
+ *
+ * The controller itself holds no if/else lifecycle logic —
+ * that responsibility has moved entirely into the State objects.
+ *
+ * Package-private helpers (writeOutput, closeOutputs, etc.) are
+ * exposed so that State implementations can drive the loop without
+ * needing reflection or tight coupling.
+ */
 public class SimulationController {
 
-    private PhysicalModel model; // D principle, we inject the whole model, not classes
-    private NumericalSolver solver;
+    // ── State machine ────────────────────────────────────────────────────────
+    private SimulationState state = new IdleState();
+
+    /** Called by State objects to perform a transition. */
+    public void setState(SimulationState newState) {
+        this.state = newState;
+    }
+
+    public SimulationState getState() { return state; }
+
+    // ── Collaborators (injected via builder-style setters) ───────────────────
+    private PhysicalModel    model;
+    private NumericalSolver  solver;
     private SimulationDomain domain;
     private final List<OutputHandler> outputHandlers = new ArrayList<>();
 
-    private double totalTime    = 1.0;
-    private double dt           = 1e-3;
-    private int    outputEvery  = 10;
+    // ── Simulation parameters ────────────────────────────────────────────────
+    private double totalTime   = 1.0;
+    private double dt          = 1e-3;
+    private int    outputEvery = 10;
 
-    private double currentTime  = 0.0;
-    private int    currentStep  = 0;
-    private boolean initialized = false;
+    // ── Runtime counters ─────────────────────────────────────────────────────
+    private double  currentTime  = 0.0;
+    private int     currentStep  = 0;
+
+    // ── Pause flag (set by pause(), checked inside RunningState loop) ────────
+    private volatile boolean pauseRequested = false;
+
+    // =========================================================================
+    // Public lifecycle API — all delegated to the current state
+    // =========================================================================
+
+    public void initialize() { state.initialize(this); }
+
+    public void run()        { state.run(this); }
+
+    public void pause()      { state.pause(this); }
+
+    public void resume()     { state.resume(this); }
+
+    // =========================================================================
+    // Builder-style configuration setters
+    // =========================================================================
 
     public SimulationController setModel(PhysicalModel model) {
         this.model = model;
-        this.initialized = false;
+        this.state = new IdleState();   // reset state if reconfigured
         return this;
     }
 
@@ -36,12 +83,12 @@ public class SimulationController {
 
     public SimulationController setDomain(SimulationDomain domain) {
         this.domain = domain;
-        this.initialized = false;
+        this.state  = new IdleState();
         return this;
     }
 
     public SimulationController addOutputHandler(OutputHandler handler) {
-        this.outputHandlers.add(handler);
+        outputHandlers.add(handler);
         return this;
     }
 
@@ -63,102 +110,72 @@ public class SimulationController {
         return this;
     }
 
-    public void initialize() {
-        validateConfiguration();
+    // =========================================================================
+    // Package-accessible helpers used by State implementations
+    // =========================================================================
 
-        model.initialize(domain);
-
-        for (OutputHandler handler : outputHandlers) {
-            handler.initialize(domain, model);
-        }
-
-        currentTime = 0.0;
-        currentStep = 0;
-        initialized = true;
-
-        System.out.println("=== Simulation initialized ===");
-        System.out.println("  Model:   " + model.getName());
-        System.out.println("  Solver:  " + solver.getName());
-        System.out.println("  Domain:  " + domain);
-        System.out.printf( "  Time:    0.0 → %.4f s  (dt=%.2e, steps=%d)%n",
-                totalTime, dt, computeTotalSteps());
-
-        warnIfUnstable();
-    }
-
-    public void run() {
-        if (!initialized) {
-            initialize();
-        }
-
-        System.out.println("\n=== Simulation started: " + model.getName() + " ===");
-
-        writeOutput();
-
-        int totalSteps = computeTotalSteps();
-
-        while (currentStep < totalSteps) {
-
-            double actualDt = Math.min(dt, totalTime - currentTime);
-            if (actualDt <= 0) break;
-
-            solver.step(model, domain, actualDt);
-
-            currentTime += actualDt;
-            currentStep++;
-
-            if (currentStep % outputEvery == 0 || currentStep == totalSteps) {
-                writeOutput();
-                printProgress(totalSteps);
-            }
-        }
-
-        finalizeOutputs();
-
-        System.out.println("=== Simulation finished ===");
-        System.out.printf("  Completed %d steps, simulated time = %.6f s%n",
-                currentStep, currentTime);
-    }
-
-    private void writeOutput() {
-        for (OutputHandler handler : outputHandlers) {
-            handler.write(currentTime, currentStep, model.getFieldValues());
-        }
-    }
-
-    private void finalizeOutputs() {
-        for (OutputHandler handler : outputHandlers) {
-            handler.close();
-        }
-    }
-
-    private int computeTotalSteps() {
-        return (int) Math.ceil(totalTime / dt);
-    }
-
-    private void printProgress(int totalSteps) {
-        double percent = 100.0 * currentStep / totalSteps;
-        System.out.printf("  Step %5d / %d  (%.1f%%)  t = %.6f s%n",
-                currentStep, totalSteps, percent, currentTime);
-    }
-
-    private void warnIfUnstable() {
-        if (!solver.isStable(dt, domain)) {
-            System.err.println("WARNING: dt=" + dt +
-                    " may violate stability condition for solver " + solver.getName());
-            System.err.println("         Consider reducing dt or increasing grid spacing.");
-        }
-    }
-
-    private void validateConfiguration() {
+    /** Validates that model, solver, and domain are all set. */
+    public void validateConfiguration() {
         if (model  == null) throw new IllegalStateException("PhysicalModel is not set");
         if (solver == null) throw new IllegalStateException("NumericalSolver is not set");
         if (domain == null) throw new IllegalStateException("SimulationDomain is not set");
     }
 
-    public double getCurrentTime()  { return currentTime; }
-    public int    getCurrentStep()  { return currentStep; }
-    public PhysicalModel  getModel()  { return model; }
-    public NumericalSolver getSolver() { return solver; }
-    public SimulationDomain getDomain() { return domain; }
+    /** Resets time counters (called during initialization). */
+    public void resetTime() {
+        currentTime = 0.0;
+        currentStep = 0;
+    }
+
+    /** Writes a snapshot to all output handlers. */
+    public void writeOutput() {
+        for (OutputHandler handler : outputHandlers) {
+            handler.write(currentTime, currentStep, model.getFieldValues());
+        }
+    }
+
+    /** Closes all output handlers. */
+    public void closeOutputs() {
+        for (OutputHandler handler : outputHandlers) {
+            handler.close();
+        }
+    }
+
+    /** Advances simulation time and step counter by one step. */
+    public void advanceTime(double actualDt) {
+        currentTime += actualDt;
+        currentStep++;
+    }
+
+    public int computeTotalSteps() {
+        return (int) Math.ceil(totalTime / dt);
+    }
+
+    public void printProgress(int totalSteps) {
+        double percent = 100.0 * currentStep / totalSteps;
+        System.out.printf("  Step %5d / %d  (%.1f%%)  t = %.6f s%n",
+            currentStep, totalSteps, percent, currentTime);
+    }
+
+    // ── Pause flag helpers ───────────────────────────────────────────────────
+
+    public void requestPause()      { pauseRequested = true; }
+    public void clearPauseRequest() { pauseRequested = false; }
+    public boolean isPauseRequested() { return pauseRequested; }
+
+    // =========================================================================
+    // Accessors
+    // =========================================================================
+
+    public double          getCurrentTime()    { return currentTime; }
+    public int             getCurrentStep()    { return currentStep; }
+    public double          getTotalTime()      { return totalTime; }
+    public double          getDt()             { return dt; }
+    public int             getOutputEvery()    { return outputEvery; }
+    public PhysicalModel   getModel()          { return model; }
+    public NumericalSolver getSolver()         { return solver; }
+    public SimulationDomain getDomain()        { return domain; }
+    public List<OutputHandler> getOutputHandlers() {
+        return Collections.unmodifiableList(outputHandlers);
+    }
 }

@@ -96,6 +96,7 @@ public class Main {
                 .setDt(DT)
                 .setOutputEvery(OUTPUT_EVERY);
 
+        controller.initialize();
         controller.run(); // L principle, controller could run with model or submodels
 
         System.out.println();
