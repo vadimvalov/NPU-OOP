@@ -3,14 +3,10 @@ package org.simulation.controller.state;
 import org.simulation.controller.SimulationController;
 
 /**
- * RUNNING — the time-stepping loop is active.
+ * RUNNING — drives the time-step loop.
  *
- * enter()  — logs start.
- * handle() — drives the loop; transitions to PAUSED, COMPLETED, or FAILED.
- * exit()   — logs end.
- *
- * Pause is cooperative: pause() sets a flag,
- * handle() checks it each step boundary.
+ * Pause is cooperative: requestPause() sets a flag,
+ * the loop picks it up at the next step boundary.
  */
 public class RunningState extends AbstractSimulationState {
 
@@ -19,7 +15,7 @@ public class RunningState extends AbstractSimulationState {
     @Override
     public void enter(SimulationController ctx) {
         super.enter(ctx);
-        ctx.writeOutput(); // snapshot at t=0 before first step
+        ctx.writeOutput(); // snapshot at t=0
     }
 
     @Override
@@ -36,10 +32,10 @@ public class RunningState extends AbstractSimulationState {
                 }
 
                 double actualDt = Math.min(ctx.getDt(),
-                                           ctx.getTotalTime() - ctx.getCurrentTime());
+                    ctx.getTotalTime() - ctx.getCurrentTime());
                 if (actualDt <= 0) break;
 
-                ctx.getSolver().step(ctx.getModel(), ctx.getDomain(), actualDt);
+                ctx.getStepper().step(ctx.getModel(), ctx.getDomain(), actualDt);
                 ctx.advanceTime(actualDt);
 
                 if (ctx.getCurrentStep() % ctx.getOutputEvery() == 0
@@ -57,7 +53,6 @@ public class RunningState extends AbstractSimulationState {
         transitionTo(ctx, new CompletedState());
     }
 
-    /** Called from another thread — sets flag, loop picks it up at next step. */
     public void requestPause() {
         pauseRequested = true;
     }

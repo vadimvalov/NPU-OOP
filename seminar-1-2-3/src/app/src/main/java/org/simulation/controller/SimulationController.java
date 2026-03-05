@@ -3,10 +3,10 @@ package org.simulation.controller;
 import org.simulation.controller.state.IdleState;
 import org.simulation.controller.state.RunningState;
 import org.simulation.controller.state.SimulationState;
-import org.simulation.core.NumericalSolver;
 import org.simulation.core.OutputHandler;
 import org.simulation.core.PhysicalModel;
 import org.simulation.core.SimulationDomain;
+import org.simulation.strategy.IStepperStrategy;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,9 +24,9 @@ public class SimulationController {
     public SimulationState getState() { return state; }
 
     // ── Collaborators ─────────────────────────────────────────────────────────
-    private PhysicalModel    model;
-    private NumericalSolver  solver;
-    private SimulationDomain domain;
+    private PhysicalModel      model;
+    private IStepperStrategy   stepper;
+    private SimulationDomain   domain;
     private final List<OutputHandler> outputHandlers = new ArrayList<>();
 
     // ── Simulation parameters ─────────────────────────────────────────────────
@@ -39,7 +39,7 @@ public class SimulationController {
     private int    currentStep = 0;
 
     // =========================================================================
-    // Public lifecycle API — delegated to current state via handle()
+    // Public lifecycle API
     // =========================================================================
 
     public void initialize() { state.handle(this); }
@@ -66,9 +66,16 @@ public class SimulationController {
         return this;
     }
 
-    public SimulationController setSolver(NumericalSolver solver) {
-        this.solver = solver;
+    public SimulationController setStepper(IStepperStrategy stepper) {
+        this.stepper = stepper;
         return this;
+    }
+
+    /** Swap stepper at runtime — called by ConvergenceObserver (Interaction #1). */
+    public void swapStepper(IStepperStrategy stepper) {
+        System.out.println("[Controller] Swapping stepper: " + this.stepper.getName()
+            + " → " + stepper.getName());
+        this.stepper = stepper;
     }
 
     public SimulationController setDomain(SimulationDomain domain) {
@@ -105,9 +112,9 @@ public class SimulationController {
     // =========================================================================
 
     public void validateConfiguration() {
-        if (model  == null) throw new IllegalStateException("PhysicalModel is not set");
-        if (solver == null) throw new IllegalStateException("NumericalSolver is not set");
-        if (domain == null) throw new IllegalStateException("SimulationDomain is not set");
+        if (model   == null) throw new IllegalStateException("PhysicalModel is not set");
+        if (stepper == null) throw new IllegalStateException("IStepperStrategy is not set");
+        if (domain  == null) throw new IllegalStateException("SimulationDomain is not set");
     }
 
     public void resetTime() {
@@ -146,14 +153,14 @@ public class SimulationController {
     // Accessors
     // =========================================================================
 
-    public double           getCurrentTime()    { return currentTime; }
-    public int              getCurrentStep()    { return currentStep; }
-    public double           getTotalTime()      { return totalTime; }
-    public double           getDt()             { return dt; }
-    public int              getOutputEvery()    { return outputEvery; }
-    public PhysicalModel    getModel()          { return model; }
-    public NumericalSolver  getSolver()         { return solver; }
-    public SimulationDomain getDomain()         { return domain; }
+    public double            getCurrentTime()     { return currentTime; }
+    public int               getCurrentStep()     { return currentStep; }
+    public double            getTotalTime()        { return totalTime; }
+    public double            getDt()              { return dt; }
+    public int               getOutputEvery()     { return outputEvery; }
+    public PhysicalModel     getModel()           { return model; }
+    public IStepperStrategy  getStepper()         { return stepper; }
+    public SimulationDomain  getDomain()          { return domain; }
     public List<OutputHandler> getOutputHandlers() {
         return Collections.unmodifiableList(outputHandlers);
     }
