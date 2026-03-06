@@ -4,7 +4,8 @@ import org.simulation.adapter.LegacyHeatModelAdapter;
 import org.simulation.controller.SimulationController;
 import org.simulation.domain.Grid2D;
 import org.simulation.models.HeatTransferModel;
-import org.simulation.output.ConsoleOutputHandler;
+import org.simulation.observer.*;
+import org.simulation.output.CSVOutputHandler;
 import org.simulation.output.JSONOutputHandler;
 import org.simulation.strategy.ExplicitEulerStepper;
 
@@ -26,17 +27,11 @@ public class Main {
         System.out.println("╚══════════════════════════════════════════════════╝");
         System.out.println();
 
-        runScenario(
-            "Heat Transfer (Native)",
-            new HeatTransferModel(1e-4),
-            "heat_native.json"
-        );
+        runScenario("Heat Transfer (Native)",
+            new HeatTransferModel(1e-4), "heat_native");
 
-        runScenario(
-            "Heat Transfer (Legacy Adapter)",
-            new LegacyHeatModelAdapter(1e-4, DT),
-            "heat_legacy.json"
-        );
+        runScenario("Heat Transfer (Legacy Adapter)",
+            new LegacyHeatModelAdapter(1e-4, DT), "heat_legacy");
 
         System.out.println();
         System.out.println("╔══════════════════════════════════════════════════╗");
@@ -44,30 +39,46 @@ public class Main {
         System.out.println("╚══════════════════════════════════════════════════╝");
     }
 
-    private static void runScenario(String scenarioName,
+    private static void runScenario(String name,
                                     org.simulation.core.PhysicalModel model,
-                                    String jsonFile) {
+                                    String filePrefix) {
 
         System.out.println("──────────────────────────────────────────────────");
-        System.out.println("  Scenario: " + scenarioName);
+        System.out.println("  Scenario: " + name);
         System.out.println("──────────────────────────────────────────────────");
 
         Grid2D domain = new Grid2D(NX, NY, LX, LY);
-
-        ConsoleOutputHandler console = new ConsoleOutputHandler();
-        console.setParameter("verbose", "true");
-
-        JSONOutputHandler json = new JSONOutputHandler(jsonFile);
 
         SimulationController controller = new SimulationController()
                 .setDomain(domain)
                 .setStepper(new ExplicitEulerStepper())
                 .setModel(model)
-                .addOutputHandler(console)
-                .addOutputHandler(json)
                 .setTotalTime(TOTAL_TIME)
                 .setDt(DT)
                 .setOutputEvery(OUTPUT_EVERY);
+
+        // Observer #1 — console logging every 50 steps
+        controller.addObserver(new ConsoleLoggerObserver(OUTPUT_EVERY));
+
+        // Observer #2 — convergence monitor, switches to Implicit if residual is high
+        controller.addObserver(new ConvergenceObserver(controller, 1.0, 10));
+
+        // Observer #3 — checkpoint every 200 steps
+        controller.addObserver(new CheckpointObserver(controller, 200, "."));
+
+        // Observer #4 — CSV output via existing CSVOutputHandler
+        controller.addObserver(new OutputObserver(
+            controller,
+            new CSVOutputHandler(filePrefix + ".csv"),
+            OUTPUT_EVERY
+        ));
+
+        // Observer #5 — JSON output via existing JSONOutputHandler
+        controller.addObserver(new OutputObserver(
+            controller,
+            new JSONOutputHandler(filePrefix + ".json"),
+            OUTPUT_EVERY
+        ));
 
         controller.initialize();
         controller.run();

@@ -6,6 +6,8 @@ import org.simulation.controller.state.SimulationState;
 import org.simulation.core.OutputHandler;
 import org.simulation.core.PhysicalModel;
 import org.simulation.core.SimulationDomain;
+import org.simulation.observer.ISimulationObserver;
+import org.simulation.observer.SimulationEventBus;
 import org.simulation.strategy.IStepperStrategy;
 
 import java.util.ArrayList;
@@ -17,16 +19,25 @@ public class SimulationController {
     // ── State machine ─────────────────────────────────────────────────────────
     private SimulationState state = new IdleState();
 
-    public void setState(SimulationState newState) {
-        this.state = newState;
+    public void setState(SimulationState newState) { this.state = newState; }
+    public SimulationState getState()              { return state; }
+
+    // ── Observer event bus ────────────────────────────────────────────────────
+    private final SimulationEventBus eventBus = new SimulationEventBus();
+
+    public SimulationController addObserver(ISimulationObserver observer) {
+        eventBus.subscribe(observer);
+        return this;
     }
 
-    public SimulationState getState() { return state; }
+    public SimulationEventBus getEventBus() { return eventBus; }
 
     // ── Collaborators ─────────────────────────────────────────────────────────
-    private PhysicalModel      model;
-    private IStepperStrategy   stepper;
-    private SimulationDomain   domain;
+    private PhysicalModel    model;
+    private IStepperStrategy stepper;
+    private SimulationDomain domain;
+
+    // kept for backward compat with OutputObserver wrapping existing handlers
     private final List<OutputHandler> outputHandlers = new ArrayList<>();
 
     // ── Simulation parameters ─────────────────────────────────────────────────
@@ -43,8 +54,8 @@ public class SimulationController {
     // =========================================================================
 
     public void initialize() { state.handle(this); }
-
     public void run()        { state.handle(this); }
+    public void resume()     { state.handle(this); }
 
     public void pause() {
         if (state instanceof RunningState) {
@@ -53,8 +64,6 @@ public class SimulationController {
             throw new IllegalStateException("Can only pause from RUNNING, current: " + state.getName());
         }
     }
-
-    public void resume()     { state.handle(this); }
 
     // =========================================================================
     // Builder-style configuration
@@ -71,10 +80,9 @@ public class SimulationController {
         return this;
     }
 
-    /** Swap stepper at runtime — called by ConvergenceObserver (Interaction #1). */
     public void swapStepper(IStepperStrategy stepper) {
-        System.out.println("[Controller] Swapping stepper: " + this.stepper.getName()
-            + " → " + stepper.getName());
+        System.out.println("[Controller] Swapping stepper: "
+            + this.stepper.getName() + " → " + stepper.getName());
         this.stepper = stepper;
     }
 
@@ -90,7 +98,7 @@ public class SimulationController {
     }
 
     public SimulationController setTotalTime(double totalTime) {
-        if (totalTime <= 0) throw new IllegalArgumentException("Total time must be positive");
+        if (totalTime <= 0) throw new IllegalArgumentException("totalTime must be positive");
         this.totalTime = totalTime;
         return this;
     }
@@ -122,6 +130,7 @@ public class SimulationController {
         currentStep = 0;
     }
 
+    /** Direct write — used only by OutputObserver internally. */
     public void writeOutput() {
         for (OutputHandler handler : outputHandlers) {
             handler.write(currentTime, currentStep, model.getFieldValues());
@@ -144,23 +153,23 @@ public class SimulationController {
     }
 
     public void printProgress(int totalSteps) {
-        double percent = 100.0 * currentStep / totalSteps;
         System.out.printf("  Step %5d / %d  (%.1f%%)  t = %.6f s%n",
-            currentStep, totalSteps, percent, currentTime);
+            currentStep, totalSteps,
+            100.0 * currentStep / totalSteps, currentTime);
     }
 
     // =========================================================================
     // Accessors
     // =========================================================================
 
-    public double            getCurrentTime()     { return currentTime; }
-    public int               getCurrentStep()     { return currentStep; }
-    public double            getTotalTime()        { return totalTime; }
-    public double            getDt()              { return dt; }
-    public int               getOutputEvery()     { return outputEvery; }
-    public PhysicalModel     getModel()           { return model; }
-    public IStepperStrategy  getStepper()         { return stepper; }
-    public SimulationDomain  getDomain()          { return domain; }
+    public double            getCurrentTime()      { return currentTime; }
+    public int               getCurrentStep()      { return currentStep; }
+    public double            getTotalTime()         { return totalTime; }
+    public double            getDt()               { return dt; }
+    public int               getOutputEvery()      { return outputEvery; }
+    public PhysicalModel     getModel()            { return model; }
+    public IStepperStrategy  getStepper()          { return stepper; }
+    public SimulationDomain  getDomain()           { return domain; }
     public List<OutputHandler> getOutputHandlers() {
         return Collections.unmodifiableList(outputHandlers);
     }
