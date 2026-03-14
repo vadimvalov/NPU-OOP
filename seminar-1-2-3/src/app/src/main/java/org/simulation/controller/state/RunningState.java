@@ -1,12 +1,13 @@
 package org.simulation.controller.state;
 
 import org.simulation.controller.SimulationController;
+import org.simulation.observer.SimulationEvent;
 
 /**
- * RUNNING — drives the time-step loop.
+ * RUNNING — drives the time-step loop and publishes events.
  *
- * Pause is cooperative: requestPause() sets a flag,
- * the loop picks it up at the next step boundary.
+ * Публикует события вместо прямых вызовов writeOutput/printProgress.
+ * Все observer-ы (логирование, запись файлов, конвергенция) реагируют на события.
  */
 public class RunningState extends AbstractSimulationState {
 
@@ -15,7 +16,10 @@ public class RunningState extends AbstractSimulationState {
     @Override
     public void enter(SimulationController ctx) {
         super.enter(ctx);
-        ctx.writeOutput(); // snapshot at t=0
+        // ON_START — OutputObserver вызовет handler.initialize() и первый write
+        ctx.getEventBus().publish(
+            SimulationEvent.start(ctx.getCurrentTime(), ctx.getCurrentStep())
+        );
     }
 
     @Override
@@ -27,6 +31,10 @@ public class RunningState extends AbstractSimulationState {
 
                 if (pauseRequested) {
                     pauseRequested = false;
+                    // ON_PAUSED — State→Observer interaction (Interaction #2)
+                    ctx.getEventBus().publish(
+                        SimulationEvent.paused(ctx.getCurrentTime(), ctx.getCurrentStep())
+                    );
                     transitionTo(ctx, new PausedState());
                     return;
                 }
@@ -35,21 +43,34 @@ public class RunningState extends AbstractSimulationState {
                     ctx.getTotalTime() - ctx.getCurrentTime());
                 if (actualDt <= 0) break;
 
+                ctx.getEventBus().publish(
+                    SimulationEvent.beforeStep(ctx.getCurrentTime(), ctx.getCurrentStep())
+                );
+
                 ctx.getStepper().step(ctx.getModel(), ctx.getDomain(), actualDt);
                 ctx.advanceTime(actualDt);
 
-                if (ctx.getCurrentStep() % ctx.getOutputEvery() == 0
-                        || ctx.getCurrentStep() == totalSteps) {
-                    ctx.writeOutput();
-                    ctx.printProgress(totalSteps);
-                }
+                double residual = ctx.getStepper().getLastResidual();
+
+                // ON_AFTER_STEP — ConvergenceObserver следит за residual,
+                // OutputObserver пишет файл, ConsoleLoggerObserver логирует
+                ctx.getEventBus().publish(
+                    SimulationEvent.afterStep(ctx.getCurrentTime(), ctx.getCurrentStep(), residual)
+                );
             }
+
         } catch (Exception e) {
-            System.err.println("[State] Exception during run: " + e.getMessage());
+            ctx.getEventBus().publish(
+                SimulationEvent.error(ctx.getCurrentTime(), ctx.getCurrentStep(), e.getMessage())
+            );
             transitionTo(ctx, new FailedState(e));
             return;
         }
 
+        // ON_STOP — OutputObserver закроет файлы
+        ctx.getEventBus().publish(
+            SimulationEvent.stop(ctx.getCurrentTime(), ctx.getCurrentStep())
+        );
         transitionTo(ctx, new CompletedState());
     }
 

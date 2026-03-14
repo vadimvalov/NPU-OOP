@@ -39,10 +39,10 @@ int main() {
         free(g->students[i]->name);
         free(g->students[i]);
     }
-    free(g->students);
-    free(g->title);
-    free(g);
-    is_freed = 1;
+    // free(g->students);
+    // free(g->title);
+    // free(g);
+    // is_freed = 1;
 
     if (!is_freed) {
         printf("haha memory leak\n");
