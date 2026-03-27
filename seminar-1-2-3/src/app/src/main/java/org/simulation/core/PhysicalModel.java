@@ -1,20 +1,28 @@
 package org.simulation.core;
 
-// whole core is about polymorphism, one main variable for any implementation
+import org.simulation.data.Field;
 
-// PhysicalModel model;
-// model = HeatTransferModel(x);
-
-// whole core is about abstraction, we describe what to do, but not how to do it.
-
-public interface PhysicalModel {
-    double[] computeRHS(SimulationDomain domain, double time);
+/**
+ * @brief Generic interface for physical models.
+ * @param <T> The numeric type (Double, Float).
+ */
+public interface PhysicalModel<T extends Number> {
+    T[] computeRHS(SimulationDomain domain, double time);
 
     void initialize(SimulationDomain domain);
     
     String getName();
     
-    double[] getFieldValues();
+    Field<T> getField();
     
-    void updateState(double[] newValues);
+    default double[] getFieldValues() {
+        T[] values = getField().getValueArray();
+        double[] result = new double[values.length];
+        for (int i = 0; i < values.length; i++) {
+            result[i] = values[i].doubleValue();
+        }
+        return result;
+    }
+    
+    void updateState(T[] newValues);
 }

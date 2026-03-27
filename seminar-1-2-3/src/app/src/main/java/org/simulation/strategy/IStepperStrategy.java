@@ -4,22 +4,18 @@ import org.simulation.core.PhysicalModel;
 import org.simulation.core.SimulationDomain;
 
 /**
- * Strategy Pattern (A1) — numerical time-stepping algorithm.
- *
- * Replaces NumericalSolver as the primary strategy interface.
- * Three implementations: ExplicitEuler, ImplicitIterative, OperatorSplitting.
+ * Strategy Pattern (A1) -- numerical time-stepping algorithm.
+ * Now generic to support different numeric types T and model types M.
  */
 public interface IStepperStrategy {
 
     /**
      * Advance the model by one time step dt.
-     * Reads model.getFieldValues(), computes new state, calls model.updateState().
-     *
-     * @return new field values after the step
+     * Use bridge methods if needed for backward compatibility.
      */
-    double[] step(PhysicalModel model, SimulationDomain domain, double dt);
+    double[] step(PhysicalModel<?> model, SimulationDomain<?> domain, double dt);
 
-    /** Residual from the last step — used by ConvergenceObserver. */
+    /** Residual from the last step. */
     double getLastResidual();
 
     String getName();

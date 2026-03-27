@@ -1,93 +1,53 @@
 package org.simulation.data;
 
-public abstract class Field {
-    // private- encapsulation, getters and setters
-    private double[][] data;
+/**
+ * @brief Generic class representing a physical field.
+ * Supports different precision types (Float, Double) via generic type T.
+ */
+public abstract class Field<T extends Number> {
+    private T[][] data;
     private int nx;
     private int ny;
     private double minValue;
     private double maxValue;
     
-    public Field(int nx, int ny) {
+    @SuppressWarnings("unchecked")
+    public Field(int nx, int ny, T initialValue) {
         if (nx <= 0 || ny <= 0) {
             throw new IllegalArgumentException("Grid dimensions must be positive");
         }
         
         this.nx = nx;
         this.ny = ny;
-        this.data = new double[nx][ny];
+        this.data = (T[][]) new Number[nx][ny];
         this.minValue = Double.MAX_VALUE;
         this.maxValue = -Double.MAX_VALUE;
         
-        initializeToZero();
+        initializeWithValue(initialValue);
     }
     
-    public double getValue(int i, int j) {
+    public T getValue(int i, int j) {
         validateIndices(i, j);
         return data[i][j];
     }
     
-    public void setValue(int i, int j, double value) {
+    public void setValue(int i, int j, T value) {
         validateIndices(i, j);
         data[i][j] = value;
         
-        if (value < minValue) minValue = value;
-        if (value > maxValue) maxValue = value;
+        double v = value.doubleValue();
+        if (v < minValue) minValue = v;
+        if (v > maxValue) maxValue = v;
     }
     
-    public double[] getValuesAs1DArray() {
-        double[] result = new double[nx * ny];
-        int index = 0;
-        
-        for (int j = 0; j < ny; j++) {
-            for (int i = 0; i < nx; i++) {
-                result[index++] = data[i][j];
-            }
-        }
-        
-        return result;
-    }
-    
-    public void setValuesFrom1DArray(double[] values) {
-        if (values.length != nx * ny) {
-            throw new IllegalArgumentException(
-                "Array size " + values.length + " does not match grid size " + (nx * ny)
-            );
-        }
-        
-        int index = 0;
-        minValue = Double.MAX_VALUE;
-        maxValue = -Double.MAX_VALUE;
-        
-        for (int j = 0; j < ny; j++) {
-            for (int i = 0; i < nx; i++) {
-                double value = values[index++];
-                data[i][j] = value;
-                
-                if (value < minValue) minValue = value;
-                if (value > maxValue) maxValue = value;
-            }
-        }
-    }
-    
-    private void initializeToZero() {
-        for (int i = 0; i < nx; i++) {
-            for (int j = 0; j < ny; j++) {
-                data[i][j] = 0.0;
-            }
-        }
-        minValue = 0.0;
-        maxValue = 0.0;
-    }
-    
-    public void initializeWithConstant(double value) {
+    private void initializeWithValue(T value) {
         for (int i = 0; i < nx; i++) {
             for (int j = 0; j < ny; j++) {
                 data[i][j] = value;
             }
         }
-        minValue = value;
-        maxValue = value;
+        minValue = value.doubleValue();
+        maxValue = value.doubleValue();
     }
     
     private void validateIndices(int i, int j) {
@@ -104,22 +64,42 @@ public abstract class Field {
     public double getMaxValue() { return maxValue; }
     
     public abstract String getFieldName();
-    
     public abstract String getUnits();
     
-    public Field copy() {
-        Field newField = createNewInstance();
-        
+    @SuppressWarnings("unchecked")
+    public T[] getValueArray() {
+        T[] flat = (T[]) new Number[nx * ny];
+        int k = 0;
         for (int i = 0; i < nx; i++) {
             for (int j = 0; j < ny; j++) {
-                newField.setValue(i, j, this.data[i][j]);
+                flat[k++] = data[i][j];
             }
         }
-        
-        return newField;
+        return flat;
     }
     
-    protected abstract Field createNewInstance();
+    public double[] getValuesAs1DArray() {
+        T[] values = getValueArray();
+        double[] result = new double[values.length];
+        for (int i = 0; i < values.length; i++) {
+            result[i] = values[i].doubleValue();
+        }
+        return result;
+    }
+    
+    @SuppressWarnings("unchecked")
+    public void setValuesFrom1DArray(double[] values) {
+        // This is a bridge for double[]. In practice, many fields should use T[] or specific Double types.
+        for (int i = 0; i < values.length; i++) {
+            int row = i % nx;
+            int col = i / nx;
+            this.setValue(row, col, (T) Double.valueOf(values[i]));
+        }
+    }
+    
+    public abstract Field<T> copy();
+
+
     
     @Override
     public String toString() {

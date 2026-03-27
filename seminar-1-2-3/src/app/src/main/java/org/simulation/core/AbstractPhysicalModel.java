@@ -1,9 +1,10 @@
 package org.simulation.core;
 
+import org.simulation.data.Field;
 
-public abstract class AbstractPhysicalModel extends SimulationComponent implements PhysicalModel {
+public abstract class AbstractPhysicalModel<T extends Number> extends SimulationComponent implements PhysicalModel<T> {
 
-    protected double[] field;
+    protected Field<T> field;
     protected int      nx, ny;
     protected double   dx, dy;
 
@@ -11,80 +12,44 @@ public abstract class AbstractPhysicalModel extends SimulationComponent implemen
         super(componentId);
     }
 
-
     @Override
+    @SuppressWarnings("unchecked")
     public void initialize(SimulationDomain domain) {
-        onInitialize();                        
-
         this.nx = domain.getNx();
         this.ny = domain.getNy();
         this.dx = domain.getDx();
         this.dy = domain.getDy();
-
-        this.field = new double[nx * ny];
-
         initializeField(domain);              
-
         applyBoundaryCondition(domain);       
+        onInitialize();
     }
 
     protected abstract void initializeField(SimulationDomain domain);
 
+    @SuppressWarnings("unchecked")
     public void applyBoundaryCondition(SimulationDomain domain) {
-        domain.applyBoundaryConditions(field);
-    }
-
-    public double[] computeStep(SimulationDomain domain, double time, double dt) {
-        requireInitialized();
-        double[] rhs  = computeRHS(domain, time);
-        double[] next = new double[field.length];
-        for (int k = 0; k < field.length; k++) {
-            next[k] = field[k] + dt * rhs[k];
+        // Delegate to domain using our field
+        if (field instanceof Field) {
+            domain.applyBoundaryConditions((Field<Double>) field);
         }
-        applyBoundaryCondition(domain);
-        updateState(next);
-        return next;
     }
 
     @Override
-    public double[] getFieldValues() {
-        requireInitialized();
-        return field.clone();
-    }
+    public Field<T> getField() { return field; }
 
+    public double getMin() { return field != null ? field.getMinValue() : 0.0; }
+    public double getMax() { return field != null ? field.getMaxValue() : 0.0; }
+    
     @Override
-    public void updateState(double[] newValues) {
-        requireInitialized();
-        if (newValues.length != field.length) {
-            throw new IllegalArgumentException(
-                "updateState: size mismatch — expected " + field.length
-                + ", got " + newValues.length);
+    public void updateState(T[] newValues) {
+        for (int i = 0; i < newValues.length; i++) {
+            field.setValue(i % nx, i / nx, newValues[i]);
         }
-        System.arraycopy(newValues, 0, field, 0, field.length);
-    }
-
-    public double getMin() {
-        double m = Double.MAX_VALUE;
-        for (double v : field) if (v < m) m = v;
-        return m;
-    }
-
-    public double getMax() {
-        double m = -Double.MAX_VALUE;
-        for (double v : field) if (v > m) m = v;
-        return m;
-    }
-
-    public double getMean() {
-        double s = 0;
-        for (double v : field) s += v;
-        return s / field.length;
     }
 
     @Override
     public String describe() {
         if (!isInitialized()) return "(not yet initialized)";
-        return String.format("grid=%dx%d  dx=%.4f  dy=%.4f  min=%.3f  max=%.3f  mean=%.3f",
-            nx, ny, dx, dy, getMin(), getMax(), getMean());
+        return String.format("grid=%dx%d", nx, ny);
     }
 }

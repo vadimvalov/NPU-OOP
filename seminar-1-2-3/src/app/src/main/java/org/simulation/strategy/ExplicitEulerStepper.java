@@ -4,47 +4,39 @@ import org.simulation.core.PhysicalModel;
 import org.simulation.core.SimulationDomain;
 
 /**
- * Explicit Euler (Forward Euler):
- *   u_new = u + dt * RHS(u)
- *
- * Fast but conditionally stable — requires small dt.
- * Wraps the same logic as FiniteDifferenceSolver.applyScheme().
+ * Strategy Pattern (A1) -- Simple Forward Euler implementation.
  */
 public class ExplicitEulerStepper implements IStepperStrategy {
 
     private double lastResidual = 0.0;
-    private double currentTime  = 0.0;
 
     @Override
-    public double[] step(PhysicalModel model, SimulationDomain domain, double dt) {
-        double[] u    = model.getFieldValues();
-        double[] rhs  = model.computeRHS(domain, currentTime);
-
+    @SuppressWarnings("unchecked")
+    public double[] step(PhysicalModel<?> model, SimulationDomain<?> domain, double dt) {
+        double[] u   = model.getFieldValues();
+        // Since we are using generic PhysicalModel<T>, computeRHS returns T[].
+        // For Backward compatibility with old steppers, we cast the Double[] bridge.
+        Double[] rhs = (Double[]) model.computeRHS(domain, 0.0);
+        
         double[] uNew = new double[u.length];
-        for (int k = 0; k < u.length; k++) {
-            uNew[k] = u[k] + dt * rhs[k];
+        double residual = 0.0;
+
+        for (int i = 0; i < u.length; i++) {
+            uNew[i] = u[i] + dt * rhs[i];
+            double diff = uNew[i] - u[i];
+            residual += diff * diff;
         }
 
-        domain.applyBoundaryConditions(uNew);
-        model.updateState(uNew);
-        currentTime += dt;
+        lastResidual = Math.sqrt(residual / u.length);
 
-        lastResidual = computeResidual(u, uNew);
+        // Bridge: update state from double[]
+        Double[] wrapped = new Double[uNew.length];
+        for (int i = 0; i < uNew.length; i++) wrapped[i] = uNew[i];
+        ((PhysicalModel<Double>)model).updateState(wrapped);
+
         return uNew;
     }
 
-    private double computeResidual(double[] uOld, double[] uNew) {
-        double sum = 0.0;
-        for (int k = 0; k < uOld.length; k++) {
-            double diff = uNew[k] - uOld[k];
-            sum += diff * diff;
-        }
-        return Math.sqrt(sum / uOld.length);
-    }
-
-    @Override
-    public double getLastResidual() { return lastResidual; }
-
-    @Override
-    public String getName() { return "Explicit Euler"; }
+    @Override public double getLastResidual() { return lastResidual; }
+    @Override public String getName() { return "Explicit Euler (Strategy)"; }
 }

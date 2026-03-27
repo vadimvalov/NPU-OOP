@@ -1,23 +1,23 @@
 package org.simulation.core;
 
-public interface SimulationDomain {
-    int getSize();
+import org.simulation.data.Field;
+
+public interface SimulationDomain<D extends SimulationDomain.Dimension> {
     
+    interface Dimension {}
+    interface Dim1D extends Dimension {}
+    interface Dim2D extends Dimension {}
+    interface Dim3D extends Dimension {}
+
     int getNx();
-    
     int getNy();
-    
     double getDx();
-    
     double getDy();
     
-    double getX(int i);
+    void applyBoundaryConditions(Field<Double> field);
     
-    double getY(int j);
-    
-    boolean isBoundary(int i, int j);
-    
-    void applyBoundaryConditions(double[] field);
-    
-    int getIndex(int i, int j);
+    // Bridge for Neumann
+    default int getIndex(int i, int j) {
+        return j * getNx() + i;
+    }
 }
