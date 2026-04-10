@@ -6,6 +6,7 @@ import org.simulation.domain.Grid2D;
 import org.simulation.models.FluidFlowModel;
 import org.simulation.models.HeatTransferModel;
 import org.simulation.observer.ConsoleLoggerObserver;
+import org.simulation.core.HistoryRecorder;
 import org.simulation.output.CSVOutputHandler;
 import org.simulation.strategy.ExplicitEulerStepper;
 import org.simulation.strategy.ImplicitIterativeStepper;
@@ -32,8 +33,15 @@ public class Main {
                 .setOutputEvery(OUTPUT_EVERY);
 
         controller.addObserver(new ConsoleLoggerObserver(OUTPUT_EVERY));
+        
+        // Task 2 Integration: Add History Recorder
+        HistoryRecorder recorder = new HistoryRecorder(controller, OUTPUT_EVERY, 100);
+        controller.addObserver(recorder);
+        
         controller.initialize();
         controller.run();
+        
+        System.out.println("Recorded history size: " + recorder.getHistory().size());
 
         System.out.println("Switching to FluidFlowModel...");
         model = new FluidFlowModel(1e-3, 1000.0);

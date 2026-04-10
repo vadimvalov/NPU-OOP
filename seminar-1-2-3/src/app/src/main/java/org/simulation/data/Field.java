@@ -5,13 +5,12 @@ package org.simulation.data;
  * Supports different precision types (Float, Double) via generic type T.
  */
 public abstract class Field<T extends Number> {
-    private T[][] data;
+    private double[] data1D;
     private int nx;
     private int ny;
     private double minValue;
     private double maxValue;
     
-    @SuppressWarnings("unchecked")
     public Field(int nx, int ny, T initialValue) {
         if (nx <= 0 || ny <= 0) {
             throw new IllegalArgumentException("Grid dimensions must be positive");
@@ -19,35 +18,42 @@ public abstract class Field<T extends Number> {
         
         this.nx = nx;
         this.ny = ny;
-        this.data = (T[][]) new Number[nx][ny];
+        this.data1D = new double[nx * ny];
         this.minValue = Double.MAX_VALUE;
         this.maxValue = -Double.MAX_VALUE;
         
         initializeWithValue(initialValue);
     }
     
+    @SuppressWarnings("unchecked")
     public T getValue(int i, int j) {
         validateIndices(i, j);
-        return data[i][j];
+        return (T) Double.valueOf(data1D[j * nx + i]);
+    }
+    
+    public double getDoubleValue(int i, int j) {
+        validateIndices(i, j);
+        return data1D[j * nx + i];
     }
     
     public void setValue(int i, int j, T value) {
+        setDoubleValue(i, j, value.doubleValue());
+    }
+    
+    public void setDoubleValue(int i, int j, double v) {
         validateIndices(i, j);
-        data[i][j] = value;
-        
-        double v = value.doubleValue();
+        data1D[j * nx + i] = v;
         if (v < minValue) minValue = v;
         if (v > maxValue) maxValue = v;
     }
     
     private void initializeWithValue(T value) {
-        for (int i = 0; i < nx; i++) {
-            for (int j = 0; j < ny; j++) {
-                data[i][j] = value;
-            }
+        double v = value.doubleValue();
+        for (int k = 0; k < data1D.length; k++) {
+            data1D[k] = v;
         }
-        minValue = value.doubleValue();
-        maxValue = value.doubleValue();
+        minValue = v;
+        maxValue = v;
     }
     
     private void validateIndices(int i, int j) {
@@ -69,31 +75,30 @@ public abstract class Field<T extends Number> {
     @SuppressWarnings("unchecked")
     public T[] getValueArray() {
         T[] flat = (T[]) new Number[nx * ny];
-        int k = 0;
         for (int i = 0; i < nx; i++) {
             for (int j = 0; j < ny; j++) {
-                flat[k++] = data[i][j];
+                flat[j * nx + i] = (T) Double.valueOf(data1D[j * nx + i]);
             }
         }
         return flat;
     }
     
     public double[] getValuesAs1DArray() {
-        T[] values = getValueArray();
-        double[] result = new double[values.length];
-        for (int i = 0; i < values.length; i++) {
-            result[i] = values[i].doubleValue();
-        }
-        return result;
+        return data1D.clone();
     }
     
-    @SuppressWarnings("unchecked")
     public void setValuesFrom1DArray(double[] values) {
-        // This is a bridge for double[]. In practice, many fields should use T[] or specific Double types.
-        for (int i = 0; i < values.length; i++) {
-            int row = i % nx;
-            int col = i / nx;
-            this.setValue(row, col, (T) Double.valueOf(values[i]));
+        if (values.length != data1D.length) {
+            throw new IllegalArgumentException("Length mismatch");
+        }
+        System.arraycopy(values, 0, this.data1D, 0, values.length);
+        
+        // Update min/max
+        minValue = Double.MAX_VALUE;
+        maxValue = -Double.MAX_VALUE;
+        for(double v : this.data1D) {
+            if(v < minValue) minValue = v;
+            if(v > maxValue) maxValue = v;
         }
     }
     

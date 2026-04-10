@@ -41,10 +41,8 @@ public abstract class AbstractPhysicalModel<T extends Number> extends Simulation
     public double getMax() { return field != null ? field.getMaxValue() : 0.0; }
     
     @Override
-    public void updateState(T[] newValues) {
-        for (int i = 0; i < newValues.length; i++) {
-            field.setValue(i % nx, i / nx, newValues[i]);
-        }
+    public void updateState(double[] newValues) {
+        field.setValuesFrom1DArray(newValues);
     }
 
     @Override

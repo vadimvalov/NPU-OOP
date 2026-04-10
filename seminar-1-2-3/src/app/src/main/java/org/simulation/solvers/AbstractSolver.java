@@ -14,11 +14,11 @@ public abstract class AbstractSolver<T extends Number, M extends PhysicalModel<T
     protected final Map<String, Double> parameters = new HashMap<>();
 
     @Override
-    public T[] step(M model, SimulationDomain domain, double dt) {
-        T[] currentValues = model.getField().copy().getValueArray(); // Simplified for logic
-        T[] rhs = model.computeRHS(domain, getCurrentTime());
+    public double[] step(M model, SimulationDomain domain, double dt) {
+        double[] currentValues = model.getField().getValuesAs1DArray(); 
+        double[] rhs = model.computeRHS(domain, getCurrentTime());
         
-        T[] newValues = applyScheme(currentValues, rhs, dt);
+        double[] newValues = applyScheme(currentValues, rhs, dt);
         
         // domain.applyBoundaryConditions(newValues); // Needs to be updated to support T[]
         model.updateState(newValues);
@@ -27,7 +27,7 @@ public abstract class AbstractSolver<T extends Number, M extends PhysicalModel<T
         return newValues;
     }
 
-    protected abstract T[] applyScheme(T[] currentValues, T[] rhs, double dt);
+    protected abstract double[] applyScheme(double[] currentValues, double[] rhs, double dt);
 
     @Override public void setParameter(String paramName, double value) { parameters.put(paramName, value); }
     protected double getParameter(String paramName, double defaultValue) { return parameters.getOrDefault(paramName, defaultValue); }

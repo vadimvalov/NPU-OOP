@@ -7,7 +7,7 @@ import org.simulation.data.Field;
  * @param <T> The numeric type (Double, Float).
  */
 public interface PhysicalModel<T extends Number> {
-    T[] computeRHS(SimulationDomain domain, double time);
+    double[] computeRHS(SimulationDomain domain, double time);
 
     void initialize(SimulationDomain domain);
     
@@ -24,5 +24,5 @@ public interface PhysicalModel<T extends Number> {
         return result;
     }
     
-    void updateState(T[] newValues);
+    void updateState(double[] newValues);
 }

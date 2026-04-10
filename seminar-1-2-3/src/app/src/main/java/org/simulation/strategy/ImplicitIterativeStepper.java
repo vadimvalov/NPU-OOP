@@ -12,19 +12,15 @@ public class ImplicitIterativeStepper implements IStepperStrategy {
     private static final int MAX_ITER = 5;
 
     @Override
-    @SuppressWarnings("unchecked")
     public double[] step(PhysicalModel<?> model, SimulationDomain<?> domain, double dt) {
         double[] u   = model.getFieldValues();
         double[] uNew = new double[u.length];
         System.arraycopy(u, 0, uNew, 0, u.length);
 
         for (int iter = 0; iter < MAX_ITER; iter++) {
-            // Internal bridge: update from double[]
-            Double[] wrapped = new Double[uNew.length];
-            for (int i = 0; i < uNew.length; i++) wrapped[i] = uNew[i];
-            ((PhysicalModel<Double>)model).updateState(wrapped);
+            model.updateState(uNew);
             
-            Double[] rhs = (Double[]) model.computeRHS(domain, 0.0);
+            double[] rhs = model.computeRHS(domain, 0.0);
             for (int i = 0; i < u.length; i++) {
                 uNew[i] = u[i] + dt * rhs[i];
             }

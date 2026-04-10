@@ -15,14 +15,9 @@ public class PressureField extends Field<Double> {
     @Override public String getFieldName() { return FIELD_NAME; }
     @Override public String getUnits() { return UNITS; }
 
-    @Override
     public Field<Double> copy() {
         PressureField newField = new PressureField(getNx(), getNy());
-        for (int i = 0; i < getNx(); i++) {
-            for (int j = 0; j < getNy(); j++) {
-                newField.setValue(i, j, getValue(i, j));
-            }
-        }
+        newField.setValuesFrom1DArray(this.getValuesAs1DArray());
         return newField;
     }
 }

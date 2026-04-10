@@ -34,9 +34,9 @@ public class Grid2D implements SimulationDomain<SimulationDomain.Dim2D> {
     
     // Demonstrate 2D logic: 5-point stencil
     public double computeLaplacian(Field<Double> field, int i, int j) {
-        double u_ij = field.getValue(i, j);
-        return (field.getValue(i+1, j) + field.getValue(i-1, j) + 
-                field.getValue(i, j+1) + field.getValue(i, j-1) - 4.0 * u_ij) / (dx * dx);
+        double u_ij = field.getDoubleValue(i, j);
+        return (field.getDoubleValue(i+1, j) + field.getDoubleValue(i-1, j) + 
+                field.getDoubleValue(i, j+1) + field.getDoubleValue(i, j-1) - 4.0 * u_ij) / (dx * dx);
     }
 }
 
@@ -60,6 +60,6 @@ class Grid1D implements SimulationDomain<SimulationDomain.Dim1D> {
 
     // Demonstrate 1D logic: 3-point stencil
     public double computeLaplacian(Field<Double> field, int i) {
-        return (field.getValue(i+1, 0) + field.getValue(i-1, 0) - 2.0 * field.getValue(i, 0)) / (dx * dx);
+        return (field.getDoubleValue(i+1, 0) + field.getDoubleValue(i-1, 0) - 2.0 * field.getDoubleValue(i, 0)) / (dx * dx);
     }
 }

@@ -1,7 +1,7 @@
 package org.simulation.output;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+// Gson removed to fix compilation without dependencies
+
 
 import org.simulation.adapter.FieldSnapshot;
 import org.simulation.adapter.LegacyFieldAdapter;
@@ -24,9 +24,7 @@ public class JSONOutputHandler implements OutputHandler {
 
     private boolean isFirst = true;
 
-    private final Gson gson = new GsonBuilder()
-            .setPrettyPrinting()
-            .create();
+    // Gson removed to fix compilation without dependencies
 
     private final Map<String, Object> parameters = new HashMap<>();
 
@@ -63,7 +61,25 @@ public class JSONOutputHandler implements OutputHandler {
     if (!isFirst) {
         writer.println(",");
     }
-    writer.println(gson.toJson(snapshot));
+    // Manual JSON serialization since Gson is missing
+    StringBuilder json = new StringBuilder();
+    json.append("{\n");
+    json.append("  \"modelName\": \"").append(snapshot.getModelName()).append("\",\n");
+    json.append("  \"step\": ").append(snapshot.getStep()).append(",\n");
+    json.append("  \"time\": ").append(snapshot.getTime()).append(",\n");
+    json.append("  \"nx\": ").append(snapshot.getNx()).append(",\n");
+    json.append("  \"ny\": ").append(snapshot.getNy()).append(",\n");
+    json.append("  \"min\": ").append(snapshot.getMin()).append(",\n");
+    json.append("  \"max\": ").append(snapshot.getMax()).append(",\n");
+    json.append("  \"mean\": ").append(snapshot.getMean()).append(",\n");
+    json.append("  \"field\": [");
+    double[] f = snapshot.getField();
+    for (int i = 0; i < f.length; i++) {
+        json.append(f[i]);
+        if (i < f.length - 1) json.append(",");
+    }
+    json.append("]\n}");
+    writer.println(json.toString());
     isFirst = false;  // ← обязательно
     writer.flush();
 }

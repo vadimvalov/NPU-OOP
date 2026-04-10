@@ -11,8 +11,8 @@ public class FiniteDifferenceSolver extends AbstractSolver<Double, PhysicalModel
     }
 
     @Override
-    protected Double[] applyScheme(Double[] currentValues, Double[] rhs, double dt) {
-        Double[] newValues = new Double[currentValues.length];
+    protected double[] applyScheme(double[] currentValues, double[] rhs, double dt) {
+        double[] newValues = new double[currentValues.length];
         for (int k = 0; k < currentValues.length; k++) {
             newValues[k] = currentValues[k] + dt * rhs[k];
         }
