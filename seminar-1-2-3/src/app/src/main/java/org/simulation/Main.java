@@ -7,9 +7,11 @@ import org.simulation.models.FluidFlowModel;
 import org.simulation.models.HeatTransferModel;
 import org.simulation.observer.ConsoleLoggerObserver;
 import org.simulation.core.HistoryRecorder;
-import org.simulation.output.CSVOutputHandler;
+import org.simulation.output.JSONOutputHandler;
 import org.simulation.strategy.ExplicitEulerStepper;
 import org.simulation.strategy.ImplicitIterativeStepper;
+import org.simulation.concurrency.TaskScheduler;
+import org.simulation.concurrency.ParallelHeatTransferModel;
 
 public class Main {
     private static final int    NX           = 20;
@@ -22,8 +24,10 @@ public class Main {
 
     public static void main(String[] args) {
         System.out.println("Seminar Generic Components Demo");
+        
+        TaskScheduler scheduler = new TaskScheduler(4); // 4 Threads
 
-        PhysicalModel<Double> model = new HeatTransferModel(1e-4);
+        PhysicalModel<Double> model = new ParallelHeatTransferModel(1e-4, scheduler);
         SimulationController controller = new SimulationController()
                 .setDomain(new Grid2D(NX, NY, LX, LY))
                 .setStepper(new ExplicitEulerStepper())
@@ -51,5 +55,8 @@ public class Main {
         controller.run();
 
         System.out.println("Generic Simulation completed successfully");
+        
+        // Shut down concurrency tools
+        scheduler.shutdown();
     }
 }

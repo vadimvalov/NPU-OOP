@@ -5,7 +5,7 @@ import org.simulation.core.SimulationDomain;
 import org.simulation.data.TemperatureField;
 
 public class HeatTransferModel extends AbstractPhysicalModel<Double> {
-    private final double thermalDiffusivity;
+    protected final double thermalDiffusivity;
 
     public HeatTransferModel(double thermalDiffusivity) {
         super("heat-transfer");
